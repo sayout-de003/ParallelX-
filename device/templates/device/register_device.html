@@ -1,0 +1,23 @@
+
+<!-- templates/making_my_device_available.html -->
+
+{% extends 'base.html' %}
+
+{% block title %} Home {% endblock %}
+
+
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <label for="name">User Name:</label>
+    <input type="text" id="name" name="name" required><br><br>
+
+    <label for="type">Device Type:</label>
+    <select id="type" name="type">
+        <option value="Looking for device">Looking for device</option>
+        <option value="Available for training">Available for training</option>
+    </select><br><br>
+
+    <button type="submit">Register Device</button>
+</form>
+{% endblock %}
