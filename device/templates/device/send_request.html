@@ -5,17 +5,21 @@
 {% block content %}
 <h2>Send Training Request</h2>
 
-<form method="POST">
+<!-- Form to send training request -->
+<form id="send-request-form" method="post">
     {% csrf_token %}
     <label for="nodes">Select Devices:</label>
     <select name="nodes" id="nodes" multiple required>
+        <!-- List all devices dynamically -->
         {% for device in devices %}
             <option value="{{ device.device.id }}">{{ device.device.name }} ({{ device.device.ip_address }})</option>
         {% endfor %}
     </select>
-    
     <button type="submit">Send Request</button>
 </form>
+
+<!-- Span to show notification status -->
+<span id="notification-status"></span>
 
 {% if devices %}
     <h3>Available Devices</h3>
@@ -27,5 +31,33 @@
 {% else %}
     <p>No devices available to send requests.</p>
 {% endif %}
+
+<!-- Include jQuery for handling form submission with AJAX -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#send-request-form').submit(function(event) {
+            event.preventDefault();  // Prevent form from submitting traditionally
+
+            var formData = $(this).serialize();  // Get form data
+
+            $.ajax({
+                url: "{% url 'device:send_request' device_id %}",  // URL for send_request view
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#notification-status').text('Request sent successfully.');
+                    } else {
+                        $('#notification-status').text('Failed to send request: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#notification-status').text('Error: ' + error);
+                }
+            });
+        });
+    });
+</script>
 
 {% endblock %}

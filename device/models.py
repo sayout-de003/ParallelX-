@@ -8,7 +8,8 @@ class Device(models.Model):
     type = models.CharField(max_length=100)  # Device type (e.g., laptop, desktop)
     available = models.BooleanField(default=False)  # Indicates if the device is ready to accept jobs
     last_seen = models.DateTimeField(auto_now=True)  # Timestamp of the last heartbeat received
-    ip_address = models.GenericIPAddressField()  # IP address of the device
+    ip_address = models.GenericIPAddressField() 
+     # IP address of the device
     status = models.CharField(max_length=20, choices=[
         ('AVAILABLE', 'Available'),        # Device is idle and ready for training
         ('CONNECTED', 'Connected'),        # Device is connected to the system

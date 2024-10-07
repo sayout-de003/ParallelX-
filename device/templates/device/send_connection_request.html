@@ -1,0 +1,36 @@
+<!-- send_connection_request.html -->
+
+{% extends 'base.html' %}
+{% block content %}
+<h2>Send Connection Request</h2>
+<form id="connection-request-form" method="post">
+    {% csrf_token %}
+    <label for="recipient">Select Device:</label>
+    <select name="recipient" id="recipient">
+        {% for device in devices %}
+            <option value="{{ device.id }}">{{ device.name }} ({{ device.ip_address }})</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Send Connection Request</button>
+</form>
+
+<span id="notification-status"></span>
+
+<script>
+    document.getElementById('connection-request-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+
+        fetch("{% url 'device:send_connection_request' recipient_id %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              document.getElementById('notification-status').textContent = data.message;
+          });
+    });
+</script>
+{% endblock %}

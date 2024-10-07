@@ -1,0 +1,15 @@
+<!-- handle_connection_request.html -->
+
+{% extends 'base.html' %}
+{% block content %}
+<h2>Handle Connection Request</h2>
+
+<p>{{ request.sender.name }} is requesting a connection.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button name="action" value="accept">Accept</button>
+    <button name="action" value="reject">Reject</button>
+</form>
+
+{% endblock %}

@@ -75,6 +75,7 @@ def register_device(request):
         device_type = request.POST.get('type')
         device_info = get_device_info()
         device = Device(name=name, type=device_type, **device_info)
+        device_id = device.id
         device.save()
         return redirect('device_list')
     return render(request, 'device/register_device.html')
@@ -86,6 +87,9 @@ from .models import Device
 
 from django.shortcuts import render
 from .models import Device, TrainingJob
+
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Device, TrainingJob, TrainingRequest
 
 def device_list(request):
     status_filter = request.GET.get('status', None)
@@ -106,8 +110,12 @@ def device_list(request):
         if not online_status:
             status = 'OFFLINE'  # Device is not reachable
         else:
-            # Check if the device is connected or busy
-            if is_device_connected(device):
+            # Check if there are any pending training requests for the device
+            pending_request = TrainingRequest.objects.filter(nodes__contains=device.id, status='PENDING').exists()
+
+            if pending_request:
+                status = 'REQUEST_SENT'  # Show that a request is sent but not yet accepted
+            elif is_device_connected(device):
                 status = 'CONNECTED'  # Device is connected for training
             elif is_device_busy(device):
                 status = 'BUSY'  # Device is busy with a training job
@@ -136,44 +144,73 @@ from .models import TrainingRequest
 from django.contrib.auth.decorators import login_required
 
 
-def send_request(request,device_id ):
-    # Retrieve available devices
-    devices = Device.objects.all()  # or apply any necessary filters
+from django.http import JsonResponse
+import requests  # For sending HTTP requests to the device
+from .models import Device, TrainingRequest
+
+# views.py
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .models import Device, ConnectionRequest
+from django.views.decorators.csrf import csrf_exempt
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from .models import Device, TrainingRequest
+import requests
+
+def send_connection_request(request, device_id):
+    device = Device.objects.get(id=device_id)
 
     if request.method == 'POST':
-        nodes = request.POST.getlist('nodes')  # Use getlist to handle multiple selections
-        # Create a training request with selected nodes
-        user = request.user if request.user.is_authenticated else None  # Set to None or a default user
-        training_request = TrainingRequest.objects.create(user=user, nodes=','.join(nodes))
-        return redirect('device:device_list')  # Use the namespaced URL name
+        device_ip = device.ip_address
 
-    return render(request, 'device/send_request.html', {
-        'devices': devices,  # Pass available devices to the template
+        try:
+            # Send a pop-up notification to the device via its IP
+            response = requests.post(f"http://{device_ip}:5001/notify", json={"message": "New training request"})
+
+            if response.status_code == 200:
+                # Create a training request for the user and device
+                nodes = request.POST.getlist('nodes')
+                user = request.user if request.user.is_authenticated else None
+
+                TrainingRequest.objects.create(user=user, nodes=','.join(nodes), status='PENDING')
+                return JsonResponse({'status': 'success', 'message': 'Request sent successfully', 'device_id': device_id})
+
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Failed to notify the device', 'response_code': response.status_code})
+
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({'status': 'error', 'message': f'Connection error: {str(e)}'})
+
+    devices = Device.objects.all()
+    return render(request, 'device/send_request.html', {'devices': devices})
+
+
+# views.py
+
+@csrf_exempt
+def handle_connection_request(request, request_id):
+    connection_request = ConnectionRequest.objects.get(id=request_id)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'accept':
+            connection_request.status = 'ACCEPTED'
+            # Logic to open VS Code or selected IDE for distributed training
+            subprocess.run(['code'])  # Replace 'code' with the appropriate command for the IDE
+        elif action == 'reject':
+            connection_request.status = 'REJECTED'
+
+        connection_request.save()
+        return JsonResponse({'status': 'success', 'message': 'Request handled successfully.'})
+
+    return render(request, 'device/handle_connection_request.html', {
+        'request': connection_request
     })
 
-# Render a form to send request
-
-
-def request_handle(request):
-    requests = TrainingRequest.objects.filter(status='PENDING')
-
-    if request.method == 'POST':
-        request_id = request.POST.get('request_id')
-        action = request.POST.get('action')
-
-        training_request = get_object_or_404(TrainingRequest, id=request_id)
-
-        if action == 'accept':
-            training_request.status = 'ACCEPTED'
-            training_request.save()
-            start_training(training_request)  # Call a function to start the training
-        elif action == 'reject':
-            training_request.status = 'REJECTED'
-            training_request.save()
-
-        return redirect('device:request_handle')  # Redirect after handling the request
-
-    return render(request, 'device/request_handle.html', {'requests': requests})
 
 def start_training(training_request):
     # Logic to start training with the specified nodes
@@ -211,3 +248,17 @@ def is_device_connected(device):
 def is_device_busy(device):
     # Check if there are any training jobs associated with this device that are still running
     return TrainingJob.objects.filter(device=device, status__in=['RUNNING', 'PENDING']).exists()
+
+
+from django.shortcuts import render
+from .models import TrainingRequest
+
+def view_notifications(request):
+    # Get all pending training requests
+    pending_requests = TrainingRequest.objects.filter(status='PENDING')
+    
+    return render(request, 'device/notification.html', {
+        'pending_requests': pending_requests
+    })
+
+
