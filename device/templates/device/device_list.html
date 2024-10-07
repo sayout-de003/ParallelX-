@@ -1,0 +1,70 @@
+<!-- templates/making_my_device_available.html -->
+
+{% extends 'base.html' %}
+
+{% block title %} Device List {% endblock %}
+
+{% block content %}
+
+<h2>List of Devices</h2>
+
+<!-- Filter form -->
+<div class="filter">
+    <form method="GET" action="">
+        <label for="status">Filter by Status:</label>
+        <select name="status" id="status">
+            <option value="">All</option>
+            <option value="AVAILABLE" {% if status_filter == 'AVAILABLE' %}selected{% endif %}>Available</option>
+            <option value="CONNECTED" {% if status_filter == 'CONNECTED' %}selected{% endif %}>Connected</option>
+            <option value="TRAINING" {% if status_filter == 'TRAINING' %}selected{% endif %}>Training</option>
+            <option value="OFFLINE" {% if status_filter == 'OFFLINE' %}selected{% endif %}>Offline</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+</div>
+
+{% if devices %}
+    <table>
+        <thead>
+            <tr>
+                <th>Device Name</th>
+                <th>RAM (GB)</th>
+                <th>Storage (GB)</th>
+                <th>CPU Cores</th>
+                <th>GPU Details</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device_status in devices %}
+            <tr>
+                <td>{{ device_status.device.name }}</td>
+                
+                <td>{{ device_status.device.ram }}</td>
+                <td>{{ device_status.device.storage }}</td>
+                <td>{{ device_status.device.cpu_cores }}</td>
+                <td>{% if device_status.device.gpu %}{{ device_status.device.gpu_details }}{% else %}No GPU{% endif %}</td>
+                <td>{{ device_status.status }}</td>
+
+                <td>
+                    <!-- Send request button for each device -->
+                    {% if device_status.device.id %}
+                    <form action="{% url 'device:send_request' device_status.device.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Send Training Request</button>
+                    </form>
+                    {% else %}
+                    <span>No ID available</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No devices available matching the selected filter.</p>
+{% endif %}
+
+
+{% endblock %}

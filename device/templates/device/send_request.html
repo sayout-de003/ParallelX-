@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %} Send Training Request {% endblock %}
+
+{% block content %}
+<h2>Send Training Request</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    <label for="nodes">Select Devices:</label>
+    <select name="nodes" id="nodes" multiple required>
+        {% for device in devices %}
+            <option value="{{ device.device.id }}">{{ device.device.name }} ({{ device.device.ip_address }})</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Send Request</button>
+</form>
+
+{% if devices %}
+    <h3>Available Devices</h3>
+    <ul>
+        {% for device in devices %}
+            <li>{{ device.device.name }} ({{ device.device.ip_address }}) - Status: {{ device.status }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No devices available to send requests.</p>
+{% endif %}
+
+{% endblock %}
