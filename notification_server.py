@@ -13,7 +13,10 @@ root.withdraw()  # Hide the main window initially
 def show_notification(message):
     # Function to show a pop-up notification
     messagebox.showinfo("Notification", message)
-    subprocess.run(['open', 'http://localhost:8000/notification'])  # Use messagebox here
+    # You might want to direct to the notification page here instead of using 'open'
+    subprocess.run(['xdg-open', 'http://localhost:8000/notification'], check=True)  # For Linux
+    # Use 'start' on Windows
+ # Use messagebox here
 
 @app.route('/notify', methods=['POST'])
 def notify():

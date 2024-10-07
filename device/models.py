@@ -36,17 +36,25 @@ class Device(models.Model):
         return self.name
     
 class ConnectionRequest(models.Model):
+    sender = models.ForeignKey(Device, related_name='sent_requests', null=True, on_delete=models.CASCADE)
+  # Add this line
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField()
+    status = models.CharField(max_length=20, default='PENDING')
+    created_at = models.DateTimeField(null=True)
+
     def __str__(self):
-        return f"{self.device.name} - {self.timestamp}"
+        return f"Request by {self.sender.name} to {self.device.name} - {self.status} - {self.timestamp} - {self.ip_address}"
+
+
     
     
 class TrainingRequest(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)  # Make user nullable
     nodes = models.TextField()  # You might want to create a separate model for nodes
     status = models.CharField(max_length=20, default='PENDING')
-    created_at = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return f"Request by {self.user.username} - {self.status}"

@@ -1,0 +1,22 @@
+<!-- choose_ide.html -->
+
+{% extends 'base.html' %}
+{% block title %} Choose IDE {% endblock %}
+{% block content %}
+<h1>Choose your IDE</h1>
+<form method="POST">
+    {% csrf_token %}
+    <select name="selected_ide">
+        {% for ide in ides %}
+            <option value="{{ ide }}">{{ ide }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Start Training</button>
+</form>
+
+
+{% endblock %}
+
+
+
+

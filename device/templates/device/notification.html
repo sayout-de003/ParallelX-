@@ -1,0 +1,24 @@
+
+<!-- templates/notification.html -->
+
+{% extends 'base.html' %}
+
+{% block title %} Notification {% endblock %}
+
+
+{% block content %}
+<h1>Pending Requests</h1>
+<ul>
+  {% for request in pending_requests %}
+    <li>
+      Request from {{ request.user }} for {{ request.nodes }}
+      <form method="POST" action="{% url 'device:handle_connection_request' request.id %}">
+        {% csrf_token %}
+        <button type="submit" name="action" value="accept">Accept</button>
+        <button type="submit" name="action" value="reject">Reject</button>
+      </form>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}
+

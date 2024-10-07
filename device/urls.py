@@ -13,4 +13,10 @@ urlpatterns = [
     path('send-request/<int:recipient_id>/', views.send_connection_request, name='send_connection_request'),
 
     path('handle-request/<int:request_id>/', views.handle_connection_request, name='handle_connection_request'),
+
+    # IDE selection view
+    path('choose_ide/<int:request_id>/', views.choose_ide, name='choose_ide'),
+    path('notification/', views.view_notifications, name='notification_page'),
+
+
 ]
