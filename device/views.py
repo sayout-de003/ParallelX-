@@ -9,6 +9,8 @@ import subprocess
 import platform
 import requests
 from .models import Device, TrainingJob, ConnectionRequest, TrainingRequest
+import os
+from django.http import HttpResponse
 
 
 # Home view
@@ -222,6 +224,19 @@ def choose_ide(request, request_id):
 
 from django.shortcuts import render
 
+import os
+import subprocess
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from device.models import TrainingRequest
+
+import os
+import subprocess
+import json
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from .models import TrainingRequest
+
 def start_training(request, request_id, ide):
     training_request = get_object_or_404(TrainingRequest, id=request_id)
 
@@ -229,24 +244,51 @@ def start_training(request, request_id, ide):
         # Get the file path from the POST request
         file_path = request.POST.get('file_path')
 
+        # Ensure the file path exists
         if not file_path or not os.path.exists(file_path):
             return HttpResponse("File path does not exist.", status=400)
 
         print(f"Starting training with nodes: {training_request.nodes} using IDE: {ide}")
-        
-        # Logic to distribute workload
+
+        # Detect nodes (connected devices)
         nodes = training_request.nodes.split(',')  # Assuming nodes are comma-separated
         num_nodes = len(nodes)
+        framework = None
 
-        # Create a command for distributed execution
-        command = f"python {file_path} --nodes {','.join(nodes)}"
+        # Framework detection for Python or Jupyter notebook files
+        if file_path.endswith('.py'):
+            framework = detect_framework(file_path)  # Detect framework from .py script
+
+        elif file_path.endswith('.ipynb'):
+            framework = detect_framework_notebook(file_path)  # Detect framework from .ipynb
+
+        if not framework:
+            return HttpResponse("Unsupported framework. Only TensorFlow and PyTorch are supported.", status=400)
+
+        # Build command for distributed training based on the framework
+        if file_path.endswith('.py'):
+            # If it's a Python script, run with the nodes argument
+            command = f"python {file_path} --nodes {','.join(nodes)}"
+        elif file_path.endswith('.ipynb'):
+            # Handle the case for Jupyter notebook
+            if ide == 'VS Code':
+                # Open the notebook in VS Code
+                command = f"code {file_path}"
+            elif ide == 'Jupyter':
+                # Open the notebook using Jupyter
+                command = f"jupyter notebook {file_path}"
+            else:
+                return HttpResponse("Unsupported IDE for notebook files.", status=400)
+        else:
+            return HttpResponse("Unsupported file type. Only .py or .ipynb files are allowed.", status=400)
 
         try:
-            # Use subprocess to run the command, you might also want to use a queue like Celery
+            # Use subprocess to run the command
             subprocess.Popen(command, shell=True)
             print(f"Command executed: {command}")
         except Exception as e:
             print(f"Error starting training: {e}")
+            return HttpResponse(f"Error executing the command: {e}", status=500)
 
         return redirect('device:device_list')
 
@@ -255,3 +297,28 @@ def start_training(request, request_id, ide):
         'request_id': request_id,
         'ide': ide,
     })
+
+def detect_framework(file_path):
+    """Detect if the training script (.py) is PyTorch or TensorFlow based on imports."""
+    with open(file_path, 'r') as f:
+        content = f.read()
+        if 'torch' in content:
+            return 'pytorch'
+        elif 'tensorflow' in content:
+            return 'tensorflow'
+    return None
+
+def detect_framework_notebook(file_path):
+    """Detect if the Jupyter notebook (.ipynb) uses PyTorch or TensorFlow."""
+    with open(file_path, 'r') as f:
+        notebook = json.load(f)
+    
+    # Iterate over notebook cells to find the import statements
+    for cell in notebook.get('cells', []):
+        if cell.get('cell_type') == 'code':  # Only check code cells
+            for line in cell.get('source', []):
+                if 'import torch' in line:
+                    return 'pytorch'
+                elif 'import tensorflow' in line:
+                    return 'tensorflow'
+    return None

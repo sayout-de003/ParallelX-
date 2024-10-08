@@ -1,5 +1,7 @@
 
 
+---
+
 # Parallalx: Distributed AI/ML Training System
 
 Parallalx is a Django-based system designed to manage distributed AI/ML model training across multiple devices. Devices in the system collaborate to share workloads, with notifications and connection requests facilitating task distribution and workload management. The project includes support for device-specific IDE selection, library installation, and asynchronous task processing.
@@ -105,16 +107,6 @@ parallalx/
 
 ---
 
-## How It Works: Workflow Diagram
-
-Below is a visual representation of the project workflow. (Add your diagram here.)
-
-```
-[ Add workflow diagram image here ]
-```
-
----
-
 ## Workflow Overview
 
 1. **Connection Requests**:
@@ -129,6 +121,12 @@ Below is a visual representation of the project workflow. (Add your diagram here
 3. **Training Start**:
    - After selecting the IDE and setting up the environment, training is initiated from the main device.
    - The training task is distributed across connected devices, utilizing parallel processing to accelerate the model training process.
+
+---
+
+## How It Works: Workflow Diagram
+
+Below is a visual representation of the project workflow. (Add your diagram here.)
 
 ---
 
@@ -158,22 +156,86 @@ This server will be responsible for handling and sending connection requests and
 
 ---
 
-## Deployment
+## Writing a Distributed Training Script
 
-1. **Collect static files**:
-   
-   Before deploying to a production environment, collect static files:
+Here’s how you can prepare your PyTorch or TensorFlow scripts for distributed training:
 
-   ```bash
-   python manage.py collectstatic
-   ```
+### For PyTorch:
+If you are using PyTorch, ensure you use `torch.distributed` for parallelism. Here's an example of a distributed training script in PyTorch:
 
-2. **Configure WSGI/ASGI**:
-   Update `wsgi.py` or `asgi.py` to configure the project for the production environment, depending on your server setup.
+```python
+import argparse
+import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-3. **Run the servers**:
-   
-   Deploy the Django project using a WSGI/ASGI server such as Gunicorn or uWSGI, in combination with a reverse proxy like Nginx. Additionally, make sure to run the `notification_server.py` Flask server on a separate port for notifications.
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--nodes', type=str, help='Comma-separated list of nodes')
+    args = parser.parse_args()
+
+    # Initialize distributed training
+    dist.init_process_group(backend="gloo", init_method="tcp://localhost:23456", 
+                            world_size=len(args.nodes.split(',')), rank=0)
+
+    # Define your model
+    model = YourModel()
+    
+    # Wrap your model for distributed training
+    model = DDP(model)
+
+    # Training loop
+    for epoch in range(num_epochs):
+        # Implement your distributed training logic here
+        ...
+
+    # Save the model
+    torch.save(model.state_dict(), 'model.pth')
+
+if __name__ == '__main__':
+    main()
+```
+
+**Key Points**:
+- Use `torch.distributed` for distributed communication.
+- Wrap your model using `DistributedDataParallel` for multi-device training.
+
+### For TensorFlow:
+TensorFlow handles distributed training via the `tf.distribute` API. Here’s an example of how to set it up:
+
+```python
+import tensorflow as tf
+
+# Multi-worker distributed training
+strategy = tf.distribute.MultiWorkerMirroredStrategy()
+
+with strategy.scope():
+    # Define your model
+    model = tf.keras.models.Sequential([...])
+
+    # Compile the model
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+
+    # Prepare your data
+    train_dataset = ...
+
+    # Train the model
+    model.fit(train_dataset, epochs=10)
+
+# Save the model
+model.save('model.h5')
+```
+
+**Key Points**:
+- Use `MultiWorkerMirroredStrategy` for distributing work across multiple devices.
+- Place your model and training logic inside the strategy scope.
+
+---
+
+## Troubleshooting
+
+- **File path does not exist**: Ensure that the file path you provide is correct and accessible to the system.
+- **Unsupported framework**: Only PyTorch and TensorFlow are currently supported. Ensure your script uses `import torch` or `import tensorflow`.
 
 ---
 
