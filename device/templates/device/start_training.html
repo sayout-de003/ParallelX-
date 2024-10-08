@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %} Start Training {% endblock %}
+{% block content %}
+<h1>Start Training</h1>
+<form method="POST" action="{% url 'device:start_training' request_id=request_id ide=ide %}">
+    {% csrf_token %}
+    <label for="file_path">Path to your code file:</label>
+    <input type="text" id="file_path" name="file_path" required>
+    <button type="submit">Start Training</button>
+</form>
+{% endblock %}

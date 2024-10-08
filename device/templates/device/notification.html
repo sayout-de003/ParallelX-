@@ -11,7 +11,7 @@
 <ul>
   {% for request in pending_requests %}
     <li>
-      Request from {{ request.user }} for {{ request.nodes }}
+      Request from (name :{{ request.sender}}) (IP: {{ request.ip_address }})
       <form method="POST" action="{% url 'device:handle_connection_request' request.id %}">
         {% csrf_token %}
         <button type="submit" name="action" value="accept">Accept</button>

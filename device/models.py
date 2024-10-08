@@ -37,7 +37,6 @@ class Device(models.Model):
     
 class ConnectionRequest(models.Model):
     sender = models.ForeignKey(Device, related_name='sent_requests', null=True, on_delete=models.CASCADE)
-  # Add this line
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField()

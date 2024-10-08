@@ -18,5 +18,5 @@ urlpatterns = [
     path('choose_ide/<int:request_id>/', views.choose_ide, name='choose_ide'),
     path('notification/', views.view_notifications, name='notification_page'),
 
-
+    path('start_training/<int:request_id>/<str:ide>/', views.start_training, name='start_training'),    # Update this line
 ]

@@ -3,6 +3,7 @@ from tkinter import messagebox  # Import messagebox here
 from flask import Flask, request, jsonify
 import threading
 import subprocess
+import webbrowser 
 
 app = Flask(__name__)
 
@@ -13,8 +14,7 @@ root.withdraw()  # Hide the main window initially
 def show_notification(message):
     # Function to show a pop-up notification
     messagebox.showinfo("Notification", message)
-    # You might want to direct to the notification page here instead of using 'open'
-    subprocess.run(['xdg-open', 'http://localhost:8000/notification'], check=True)  # For Linux
+    webbrowser.open('http://localhost:8000/notification')
     # Use 'start' on Windows
  # Use messagebox here
 
